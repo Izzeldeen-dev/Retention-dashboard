@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Retention Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .icon {
+            width: 24px;
+            height: 24px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Icon Components
+        const Users = ({ className }) => (
+            <svg className={`icon ${className}`} viewBox="0 0 24 24">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+        );
+
+        const TrendingUp = ({ className }) => (
+            <svg className={`icon ${className}`} viewBox="0 0 24 24">
+                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+                <polyline points="17 6 23 6 23 12"/>
+            </svg>
+        );
+
+        const AlertTriangle = ({ className }) => (
+            <svg className={`icon ${className}`} viewBox="0 0 24 24">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+        );
+
+        const CheckCircle = ({ className }) => (
+            <svg className={`icon ${className}`} viewBox="0 0 24 24">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+        );
+
+        const Plus = ({ className }) => (
+            <svg className={`icon ${className}`} viewBox="0 0 24 24">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+        );
+
+        const Trash2 = ({ className }) => (
+            <svg className={`icon ${className}`} viewBox="0 0 24 24">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                <line x1="10" y1="11" x2="10" y2="17"/>
+                <line x1="14" y1="11" x2="14" y2="17"/>
+            </svg>
+        );
+
+        const CustomerRetentionDashboard = () => {
+            const [customers, setCustomers] = useState([
+                {
+                    id: 1,
+                    name: "Acme Corp",
+                    nps: 9,
+                    sessionShowUp: 95,
+                    messageResponseTime: 1,
+                    sessionScheduled: true,
+                    participationLevel: 8.5,
+                    surveyFilled: true
+                },
+                {
+                    id: 2,
+                    name: "TechStart Inc",
+                    nps: 7,
+                    sessionShowUp: 75,
+                    messageResponseTime: 2.5,
+                    sessionScheduled: false,
+                    participationLevel: 6,
+                    surveyFilled: true
+                },
+                {
+                    id: 3,
+                    name: "Global Solutions",
+                    nps: 4,
+                    sessionShowUp: 45,
+                    messageResponseTime: 5,
+                    sessionScheduled: false,
+                    participationLevel: 3,
+                    surveyFilled: false
+                }
+            ]);
+
+            const [newCustomer, setNewCustomer] = useState({
+                name: '',
+                nps: 0,
+                sessionShowUp: 0,
+                messageResponseTime: 0,
+                sessionScheduled: false,
+                participationLevel: 0,
+                surveyFilled: false
+            });
+
+            const [showAddForm, setShowAddForm] = useState(false);
+
+            // Calculate engagement score
+            const calculateEngagementScore = (customer) => {
+                // Session Show Up Rate (40% weight)
+                let sessionScore = 0;
+                if (customer.sessionShowUp >= 90) sessionScore = 10;
+                else if (customer.sessionShowUp >= 60) sessionScore = 7.5;
+                else sessionScore = 3;
+
+                // Message Response Time (10% weight)
+                let responseScore = 0;
+                if (customer.messageResponseTime <= 2) responseScore = 10;
+                else if (customer.messageResponseTime <= 3) responseScore = 7.5;
+                else responseScore = 3;
+
+                // Session Scheduled (5% weight)
+                const scheduleScore = customer.sessionScheduled ? 10 : 3;
+
+                // Participation Level (35% weight) - assuming it's already on 0-10 scale
+                const participationScore = customer.participationLevel;
+
+                // Survey Filled (10% weight)
+                const surveyScore = customer.surveyFilled ? 10 : 3;
+
+                // Calculate weighted engagement score
+                const engagementScore = 
+                    (sessionScore * 0.4) + 
+                    (responseScore * 0.1) + 
+                    (scheduleScore * 0.05) + 
+                    (participationScore * 0.35) + 
+                    (surveyScore * 0.1);
+
+                return engagementScore;
+            };
+
+            // Calculate overall health score
+            const calculateHealthScore = (customer) => {
+                const npsScore = customer.nps;
+                const engagementScore = calculateEngagementScore(customer);
+                
+                // NPS 60% weight, Engagement 40% weight
+                const healthScore = (npsScore * 0.6) + (engagementScore * 0.4);
+                return healthScore;
+            };
+
+            // Get color category
+            const getHealthCategory = (score) => {
+                if (score >= 8) return { color: 'green', label: 'Healthy', bgColor: 'bg-green-100', textColor: 'text-green-800', borderColor: 'border-green-200' };
+                if (score >= 7) return { color: 'yellow', label: 'At Risk', bgColor: 'bg-yellow-100', textColor: 'text-yellow-800', borderColor: 'border-yellow-200' };
+                return { color: 'red', label: 'Critical', bgColor: 'bg-red-100', textColor: 'text-red-800', borderColor: 'border-red-200' };
+            };
+
+            // Calculate summary stats
+            const getSummaryStats = () => {
+                const stats = { green: 0, yellow: 0, red: 0, total: customers.length };
+                
+                customers.forEach(customer => {
+                    const score = calculateHealthScore(customer);
+                    const category = getHealthCategory(score);
+                    stats[category.color]++;
+                });
+
+                return stats;
+            };
+
+            const addCustomer = () => {
+                if (newCustomer.name.trim()) {
+                    setCustomers([...customers, { ...newCustomer, id: Date.now() }]);
+                    setNewCustomer({
+                        name: '',
+                        nps: 0,
+                        sessionShowUp: 0,
+                        messageResponseTime: 0,
+                        sessionScheduled: false,
+                        participationLevel: 0,
+                        surveyFilled: false
+                    });
+                    setShowAddForm(false);
+                }
+            };
+
+            const deleteCustomer = (id) => {
+                setCustomers(customers.filter(customer => customer.id !== id));
+            };
+
+            const stats = getSummaryStats();
+
+            return (
+                <div className="min-h-screen bg-gray-50 p-6">
+                    <div className="max-w-7xl mx-auto">
+                        {/* Header */}
+                        <div className="mb-8">
+                            <h1 className="text-3xl font-bold text-gray-900 mb-2">Customer Retention Dashboard</h1>
+                            <p className="text-gray-600">Monitor customer health scores and retention metrics</p>
+                        </div>
+
+                        {/* Summary Cards */}
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                            <div className="bg-white rounded-lg shadow p-6">
+                                <div className="flex items-center">
+                                    <Users className="h-8 w-8 text-blue-600" />
+                                    <div className="ml-4">
+                                        <p className="text-sm font-medium text-gray-600">Total Customers</p>
+                                        <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="bg-white rounded-lg shadow p-6">
+                                <div className="flex items-center">
+                                    <CheckCircle className="h-8 w-8 text-green-600" />
+                                    <div className="ml-4">
+                                        <p className="text-sm font-medium text-gray-600">Healthy</p>
+                                        <p className="text-2xl font-bold text-green-600">{stats.green}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="bg-white rounded-lg shadow p-6">
+                                <div className="flex items-center">
+                                    <AlertTriangle className="h-8 w-8 text-yellow-600" />
+                                    <div className="ml-4">
+                                        <p className="text-sm font-medium text-gray-600">At Risk</p>
+                                        <p className="text-2xl font-bold text-yellow-600">{stats.yellow}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="bg-white rounded-lg shadow p-6">
+                                <div className="flex items-center">
+                                    <TrendingUp className="h-8 w-8 text-red-600" />
+                                    <div className="ml-4">
+                                        <p className="text-sm font-medium text-gray-600">Critical</p>
+                                        <p className="text-2xl font-bold text-red-600">{stats.red}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Add Customer Button */}
+                        <div className="mb-6">
+                            <button
+                                onClick={() => setShowAddForm(!showAddForm)}
+                                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
+                            >
+                                <Plus className="h-4 w-4 mr-2" />
+                                Add Customer
+                            </button>
+                        </div>
+
+                        {/* Add Customer Form */}
+                        {showAddForm && (
+                            <div className="bg-white rounded-lg shadow p-6 mb-6">
+                                <h3 className="text-lg font-semibold mb-4">Add New Customer</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Customer Name</label>
+                                        <input
+                                            type="text"
+                                            value={newCustomer.name}
+                                            onChange={(e) => setNewCustomer({...newCustomer, name: e.target.value})}
+                                            className="w-full border border-gray-300 rounded-md px-3 py-2"
+                                            placeholder="Enter customer name"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">NPS Score (0-10)</label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            max="10"
+                                            value={newCustomer.nps}
+                                            onChange={(e) => setNewCustomer({...newCustomer, nps: parseFloat(e.target.value) || 0})}
+                                            className="w-full border border-gray-300 rounded-md px-3 py-2"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Session Show Up (%)</label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            max="100"
+                                            value={newCustomer.sessionShowUp}
+                                            onChange={(e) => setNewCustomer({...newCustomer, sessionShowUp: parseFloat(e.target.value) || 0})}
+                                            className="w-full border border-gray-300 rounded-md px-3 py-2"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Response Time (days)</label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            step="0.1"
+                                            value={newCustomer.messageResponseTime}
+                                            onChange={(e) => setNewCustomer({...newCustomer, messageResponseTime: parseFloat(e.target.value) || 0})}
+                                            className="w-full border border-gray-300 rounded-md px-3 py-2"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Participation Level (0-10)</label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            max="10"
+                                            step="0.1"
+                                            value={newCustomer.participationLevel}
+                                            onChange={(e) => setNewCustomer({...newCustomer, participationLevel: parseFloat(e.target.value) || 0})}
+                                            className="w-full border border-gray-300 rounded-md px-3 py-2"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Session Scheduled</label>
+                                        <select
+                                            value={newCustomer.sessionScheduled}
+                                            onChange={(e) => setNewCustomer({...newCustomer, sessionScheduled: e.target.value === 'true'})}
+                                            className="w-full border border-gray-300 rounded-md px-3 py-2"
+                                        >
+                                            <option value={false}>No</option>
+                                            <option value={true}>Yes</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Survey Filled</label>
+                                        <select
+                                            value={newCustomer.surveyFilled}
+                                            onChange={(e) => setNewCustomer({...newCustomer, surveyFilled: e.target.value === 'true'})}
+                                            className="w-full border border-gray-300 rounded-md px-3 py-2"
+                                        >
+                                            <option value={false}>No</option>
+                                            <option value={true}>Yes</option>
+                                        </select>
+                                    </div>
+                                    <div className="flex items-end">
+                                        <button
+                                            onClick={addCustomer}
+                                            className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 mr-2"
+                                        >
+                                            Add Customer
+                                        </button>
+                                        <button
+                                            onClick={() => setShowAddForm(false)}
+                                            className="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Customer List */}
+                        <div className="bg-white rounded-lg shadow">
+                            <div className="px-6 py-4 border-b border-gray-200">
+                                <h2 className="text-xl font-semibold text-gray-900">Customer Health Scores</h2>
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NPS</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Engagement</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Health Score</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Details</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {customers.map((customer) => {
+                                            const healthScore = calculateHealthScore(customer);
+                                            const engagementScore = calculateEngagementScore(customer);
+                                            const category = getHealthCategory(healthScore);
+                                            
+                                            return (
+                                                <tr key={customer.id} className="hover:bg-gray-50">
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <div className="font-medium text-gray-900">{customer.name}</div>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <div className="text-sm text-gray-900">{customer.nps.toFixed(1)}</div>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <div className="text-sm text-gray-900">{engagementScore.toFixed(1)}</div>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <div className="text-lg font-semibold text-gray-900">{healthScore.toFixed(1)}</div>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${category.bgColor} ${category.textColor}`}>
+                                                            {category.label}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500">
+                                                        <div>Show Up: {customer.sessionShowUp}%</div>
+                                                        <div>Response: {customer.messageResponseTime}d</div>
+                                                        <div>Scheduled: {customer.sessionScheduled ? 'Yes' : 'No'}</div>
+                                                        <div>Participation: {customer.participationLevel}</div>
+                                                        <div>Survey: {customer.surveyFilled ? 'Yes' : 'No'}</div>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <button
+                                                            onClick={() => deleteCustomer(customer.id)}
+                                                            className="text-red-600 hover:text-red-900"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        {/* Scoring Legend */}
+                        <div className="mt-8 bg-white rounded-lg shadow p-6">
+                            <h3 className="text-lg font-semibold mb-4">Scoring System</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <h4 className="font-medium mb-3">Health Score Calculation</h4>
+                                    <ul className="text-sm text-gray-600 space-y-1">
+                                        <li>• NPS Score: 60% weight</li>
+                                        <li>• Engagement Score: 40% weight</li>
+                                    </ul>
+                                </div>
+                                <div>
+                                    <h4 className="font-medium mb-3">Engagement Components</h4>
+                                    <ul className="text-sm text-gray-600 space-y-1">
+                                        <li>• Session Show Up Rate: 40%</li>
+                                        <li>• Participation Level: 35%</li>
+                                        <li>• Message Response Time: 10%</li>
+                                        <li>• Survey Completion: 10%</li>
+                                        <li>• Session Scheduling: 5%</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div className="mt-4">
+                                <h4 className="font-medium mb-3">Health Categories</h4>
+                                <div className="flex flex-wrap gap-4">
+                                    <span className="inline-flex px-3 py-1 text-sm font-medium rounded-full bg-green-100 text-green-800">
+                                        Green (8.0-10.0): Healthy
+                                    </span>
+                                    <span className="inline-flex px-3 py-1 text-sm font-medium rounded-full bg-yellow-100 text-yellow-800">
+                                        Yellow (7.0-7.9): At Risk
+                                    </span>
+                                    <span className="inline-flex px-3 py-1 text-sm font-medium rounded-full bg-red-100 text-red-800">
+                                        Red (0.0-6.9): Critical
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<CustomerRetentionDashboard />, document.getElementById('root'));
+    </script>
+</body>
+</html>
